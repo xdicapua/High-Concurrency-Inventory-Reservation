@@ -1,5 +1,7 @@
 namespace FlashSale.Application.Interfaces;
 
+public record CacheReservationInfo(Guid UserId, string Status);
+
 public interface IInventoryCacheRepository
 {
     /// <summary>
@@ -16,4 +18,14 @@ public interface IInventoryCacheRepository
     /// Devuelve 1 unidad de stock al inventario (ej. cancelación o expiración).
     /// </summary>
     Task ReleaseStockAsync(string sku);
+
+    /// <summary>
+    /// Obtiene la información de la reserva desde la caché si existe.
+    /// </summary>
+    Task<CacheReservationInfo?> GetReservationAsync(Guid reservationId);
+
+    /// <summary>
+    /// Elimina la reserva de la caché.
+    /// </summary>
+    Task DeleteReservationAsync(Guid reservationId);
 }

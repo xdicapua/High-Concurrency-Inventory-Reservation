@@ -56,4 +56,30 @@ public class RedisInventoryCacheRepository : IInventoryCacheRepository
         var stockKey = $"item:{sku}:stock";
         await _db.StringIncrementAsync(stockKey);
     }
+
+    public async Task<CacheReservationInfo?> GetReservationAsync(Guid reservationId)
+    {
+        var reservationKey = $"reservation:{reservationId}";
+        var entries = await _db.HashGetAllAsync(reservationKey);
+
+        if (entries.Length == 0)
+            return null;
+
+        var dict = entries.ToDictionary(x => x.Name.ToString(), x => x.Value.ToString());
+
+        if (dict.TryGetValue("user_id", out var userIdStr) &&
+            dict.TryGetValue("status", out var status) &&
+            Guid.TryParse(userIdStr, out var userId))
+        {
+            return new CacheReservationInfo(userId, status);
+        }
+
+        return null;
+    }
+
+    public async Task DeleteReservationAsync(Guid reservationId)
+    {
+        var reservationKey = $"reservation:{reservationId}";
+        await _db.KeyDeleteAsync(reservationKey);
+    }
 }

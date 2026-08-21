@@ -21,18 +21,20 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 2. Endpoint de alta concurrencia para reservar stock
+// 1. Endpoint para reservar en Redis (RAM)
 app.MapPost("/api/v1/reservations", async (ReserveStockRequest request, ReserveStockUseCase useCase) =>
 {
     var response = await useCase.ExecuteAsync(request);
-
-    if (!response.Success)
-    {
-        return Results.Conflict(response); // 409 Conflict si no hay stock
-    }
-
-    return Results.Ok(response); // 200 OK con ID de reserva y TTL
+    return response.Success ? Results.Ok(response) : Results.Conflict(response);
 })
 .WithName("ReserveStock");
+
+// 2. Endpoint para confirmar y persistir en PostgreSQL (Disco)
+app.MapPost("/api/v1/reservations/confirm", async (ConfirmReservationRequest request, ConfirmReservationUseCase useCase) =>
+{
+    var response = await useCase.ExecuteAsync(request);
+    return response.Success ? Results.Ok(response) : Results.BadRequest(response);
+})
+.WithName("ConfirmReservation");
 
 app.Run();
