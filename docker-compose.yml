@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # 1. Almacén en memoria para alta concurrencia y atomicidad
+  redis:
+    image: redis:7-alpine
+    container_name: flash-sale-redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  # 2. Base de datos persistente para checkout y órdenes finales
+  postgres:
+    image: postgres:16-alpine
+    container_name: flash-sale-postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: flash_sale_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  pgdata:
