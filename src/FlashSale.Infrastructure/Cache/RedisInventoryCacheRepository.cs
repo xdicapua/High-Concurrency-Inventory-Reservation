@@ -19,13 +19,10 @@ public class RedisInventoryCacheRepository : IInventoryCacheRepository
         return 1
     ";
 
-    private readonly LuaScript _preparedScript;
-
     public RedisInventoryCacheRepository(IConnectionMultiplexer redis)
     {
         _redis = redis;
         _db = redis.GetDatabase();
-        _preparedScript = LuaScript.Prepare(ReserveLuaScript);
     }
 
     public async Task<bool> TryReserveStockAsync(string sku, Guid reservationId, Guid userId, TimeSpan ttl)
@@ -33,7 +30,7 @@ public class RedisInventoryCacheRepository : IInventoryCacheRepository
         var keys = new RedisKey[]
         {
             $"item:{sku}:stock",
-            $"reservation:{reservationId}"
+            $"reservation:{sku}:{reservationId}"
         };
 
         var values = new RedisValue[]
@@ -43,8 +40,8 @@ public class RedisInventoryCacheRepository : IInventoryCacheRepository
         };
 
         var result = await _db.ScriptEvaluateAsync(
-            ReserveLuaScript, 
-            keys, 
+            ReserveLuaScript,
+            keys,
             values
         );
 
@@ -57,9 +54,9 @@ public class RedisInventoryCacheRepository : IInventoryCacheRepository
         await _db.StringIncrementAsync(stockKey);
     }
 
-    public async Task<CacheReservationInfo?> GetReservationAsync(Guid reservationId)
+    public async Task<CacheReservationInfo?> GetReservationAsync(string sku, Guid reservationId)
     {
-        var reservationKey = $"reservation:{reservationId}";
+        var reservationKey = $"reservation:{sku}:{reservationId}";
         var entries = await _db.HashGetAllAsync(reservationKey);
 
         if (entries.Length == 0)
@@ -77,9 +74,9 @@ public class RedisInventoryCacheRepository : IInventoryCacheRepository
         return null;
     }
 
-    public async Task DeleteReservationAsync(Guid reservationId)
+    public async Task DeleteReservationAsync(string sku, Guid reservationId)
     {
-        var reservationKey = $"reservation:{reservationId}";
+        var reservationKey = $"reservation:{sku}:{reservationId}";
         await _db.KeyDeleteAsync(reservationKey);
     }
 }

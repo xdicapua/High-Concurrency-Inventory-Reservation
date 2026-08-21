@@ -5,9 +5,11 @@ using FlashSale.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Inyección de dependencias de las capas
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Registro del Background Worker
+builder.Services.AddHostedService<FlashSale.Api.Workers.StockRecoveryWorker>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -21,7 +23,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 1. Endpoint para reservar en Redis (RAM)
 app.MapPost("/api/v1/reservations", async (ReserveStockRequest request, ReserveStockUseCase useCase) =>
 {
     var response = await useCase.ExecuteAsync(request);
@@ -29,7 +30,6 @@ app.MapPost("/api/v1/reservations", async (ReserveStockRequest request, ReserveS
 })
 .WithName("ReserveStock");
 
-// 2. Endpoint para confirmar y persistir en PostgreSQL (Disco)
 app.MapPost("/api/v1/reservations/confirm", async (ConfirmReservationRequest request, ConfirmReservationUseCase useCase) =>
 {
     var response = await useCase.ExecuteAsync(request);
